@@ -1,0 +1,13 @@
+{
+    "Altitude": "0", 
+    "Cycle": true, 
+    "Interval": 30, 
+    "Latitude": "45:31:23.0", 
+    "Longitude": "-123:56:34.5", 
+    "Order": "Name", 
+    "Twilight": "Civil", 
+    "daytimeDir": "/home/nicci/Development/timelywall/walls/daytime", 
+    "eveningDir": "/home/nicci/Development/timelywall/walls/evening", 
+    "morningDir": "/home/nicci/Development/timelywall/walls/morning", 
+    "nightDir": "/home/nicci/Development/timelywall/walls/night"
+}

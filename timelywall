@@ -1,0 +1,478 @@
+#!/usr/bin/env python
+import os, sys, gi, json, glob, mimetypes, random
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
+path=os.path.dirname(os.path.realpath(sys.argv[0]))
+os.chdir(path)
+if not os.path.exists('lib'):
+    sys.stderr.write('Cannot find library direcrory\n')
+    sys.exit(1)
+sys.path.append(os.path.join(path,'lib'))    
+import debug, dialogs, timetype, desktop
+desktopEnvironment = os.environ.get('DESKTOP_SESSION')
+iconFile = 'logo.png'
+orderMap = ("Random","Name","Date")
+Twilights = ('Civil','Nautical','Astronomical')
+settingsKeys = ('daytimeDir', 'Altitude', 'Interval', 'Longitude', 'Latitude', 'Order', 'nightDir', 'eveningDir', 'morningDir', 'Twilight', 'Cycle')
+logWindow = None
+
+def setLogWindow():
+    global logWindow
+    logWindow = debug.debugWindow(iconFile)
+
+def error(msg):
+    debug.debug('ERROR: ',msg)
+    dialogs.error(msg,buttons='OK')
+
+class wallPaperApp(Gtk.Application):
+    def __init__(self,flags):
+        self.flags = flags
+        self.timeout_source = None
+        Gtk.Application.__init__(self, application_id="com.ducksfeet.timelywall",
+                                 flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self.timeout_source = None
+        self.curTimeType = None
+        self.curFile = None
+        self.settingsFile = 'config.json'
+        self.iconFile = iconFile
+        self.showing = False
+        self.modified = False
+        self.curFile = None
+        self.forceReload = None
+        self.daytimeDir = ''
+        self.Altitude = '0'
+        self.Interval = 0
+        self.Longitude = ''
+        self.Latitude = ''
+        self.Order = ''
+        self.nightDir = ''
+        self.eveningDir = ''
+        self.morningDir = ''
+        self.Twilight = ''
+        self.Cycle = False        
+        self.filelists = {
+            "morningDir": None,
+            "daytimeDir": None,
+            "eveningDir": None,
+            "nightDir":  None,
+        }
+        self.controls = {
+            "morningDir": {"type": "file", "widget": None},
+            "daytimeDir": {"type": "file", "widget": None},
+            "eveningDir": {"type": "file", "widget": None},
+            "nightDir": {"type": "file", "widget": None},
+            "Cycle": {"type": "switch", "widget": None},
+            "Order": {"type": "cb", "widget": None},
+            "Interval": {"type": "sb", "widget": None},
+            "Longitude": {"type": "entry", "widget": None},
+            "Latitude": {"type": "entry", "widget": None},
+            "Altitude": {"type": "entry", "widget": None},
+            "Twilight": {"type": "cb", "widget": None},
+            "Reload": {'type': 'button', 'widget': None},
+            "debug": {'type': 'button', 'widget': None},
+            "Cancel": {"type": "button", "widget": None},
+            "Save": {"type": "button", "widget": None},
+            "Quit": {"type": "button", "widget": None},
+            "About": {"type": "button", "widget": None},
+        }
+        builder = Gtk.Builder.new_from_file('lib/settings.glade')
+        self.window = builder.get_object('window1')
+        self.window.set_icon_from_file(iconFile)
+        for k in list(self.controls.keys()):
+            try:
+                w = builder.get_object(k)
+                if not w:
+                    debug.debug('No widget for {}'.format(k))
+                    continue
+            except:
+                debug.debug('No widget for {}'.format(k))
+                continue
+            self.controls[k]["widget"] = w
+
+        self.connect("activate", self.on_activate)
+        self.connect("startup", self.on_startup)
+        self.connect("shutdown", self.on_shutdown)
+        self.window.connect('delete-event', self.settingsDone, None)
+        builder.connect_signals(self)
+        self.loadFromFile()
+
+    def cb_statusActivate(self,*args):
+        debug.debug('Showing settings')
+        self.showDialog()
+
+    def go(self):
+        if(self.timeout_source):
+            try:
+                GObject.source_remove(self.timeout_source)
+            except:
+                pass
+        self.timeout_source = None
+        self.periodic()
+
+        if self.Interval:
+            self.timeout_source = GObject.timeout_add(self.Interval*1000,self.go)
+
+    def periodic(self):
+        debug.debug('periodic')
+        if not self.settingsValid():
+            return
+        timeType = self.getTimeType()
+        debug.debug('it is',timeType)
+        if self.curTimeType != timeType:
+            self.curIndex = -1
+            self.curTimeType = timeType
+        k = timeType+'Dir'
+        self.curIndex += 1
+        if not self.Cycle:
+            self.curIndex = 0
+        else:
+            if self.curIndex >= len(self.filelists[k]):
+                self.curIndex = 0
+        newFile = self.filelists[k][self.curIndex][0]
+        if newFile != self.curFile:
+            new = 'N'
+        else:
+            new = 'O'
+        self.curFile = newFile
+        debug.debug('Next file',new,self.curIndex,self.curFile)
+        desktop.setBackground(desktopEnvironment, self.curFile)
+
+    def getTimeType(self):
+        return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight)
+
+    def on_startup(self,*args):
+        debug.debug('Startup')
+
+    def on_shutdown(self,*args):
+        debug.debug('Shutdown')
+
+
+    def on_activate(self,*args):
+        if self.flags["debug"]:
+            debug.setdebug(True)
+            debug.debug('Started Logging')
+        if self.flags["logWindow"]:
+            setLogWindow()
+            debug.setdebug(True)
+            debug.debug('Logging to viewer')
+            logWindow.show()
+
+        self.statusIcon = Gtk.StatusIcon.new_from_file(iconFile)
+        self.statusIcon.set_title('Timely Wallpaper Changer')
+        self.statusIcon.set_tooltip_text('Timely Wallpaper Changer\nChanges wallpaper based on time of day and position of sun')
+        self.statusIcon.connect('activate',self.cb_statusActivate)
+
+        self.go()
+        while True:
+            Gtk.main_iteration()
+
+    def setTitle(self):
+        if self.modified:
+            m='*'
+        else:
+            m=''
+        valid,key = self.validateSettings(self.controlsToDict())
+        if not valid:
+            i=' - invalid settings!'
+        else:
+            i=''
+        self.window.set_title('{}Timely Wallpaper Settings{}'.format(m,i))
+
+    def settingsValid(self):
+        valid,key = self.validateSettings()
+        if valid:
+            valid,key = self.validateFileLists()
+        return valid
+
+    def showDialog(self):
+        settingsData = self.settingsToDict()
+        keys = settingsKeys
+        for k in list(self.controls.keys()):
+            c = self.controls[k]
+            w = c['widget']
+            if not k in settingsData:
+                continue
+            kdata = settingsData[k]
+            if kdata == None:
+                debug.debug("Invald data for {}".format(k))
+                continue
+            if k == 'Order':
+                w.set_active(int(orderMap.index(kdata)))
+            elif k == 'Twilight':
+                w.set_active(int(Twilights.index(kdata)))
+            elif k == 'Cycle':
+                w.set_state(kdata)
+            elif c["type"] == "entry":
+                w.set_text(str(kdata))
+            elif c["type"] == 'file':
+                w.set_filename(kdata or '.')
+            elif k == 'Interval':
+                w.set_value(int(kdata))
+            elif 'k' == 'Twilight':
+                w.set_active(Twilights.index(kdata))
+
+        if 'Cycle' in self.__dict__ and self.__dict__['Cycle'] != None:
+            sensitive = self.__dict__['Cycle']
+        else:
+            sensitive = False
+        self.controls['Order']['widget'].set_sensitive(sensitive)
+        self.modified = False
+        self.setTitle()
+        self.window.show_all()
+
+    def loadFromFile(self, settingsFile=None):
+        if settingsFile:
+            self.settingsFile = settingsFile
+        keys = settingsKeys
+        for k in keys:
+            setattr(self,k,None)
+        if os.path.exists(self.settingsFile):
+            try:
+                settingsData = open(self.settingsFile).read()
+            except:
+                debug.debug("Cannot read settings file")
+                return False
+            debug.debug('Read Settings data - decoding',settingsData)
+            try:            
+                settingsData = json.loads(settingsData)
+            except:
+                return False
+            for k in list(settingsData.keys()):
+                debug.debug('{} = {}'.format(k,settingsData[k]))
+                setattr(self,k,settingsData[k])
+            debug.debug('Attributes loaded, id',id(self.__dict__))
+            debug.debug('Settings object id',id(self))
+            flag, key = self.validateSettings()
+            if flag:
+                debug.debug('Valid settings, loading filelist')
+                self.getFileLists()
+                return True
+            else:
+                debug.debug('Invalid settings on',key)
+                return False
+        return False
+ 
+    def validateSettings(self, settingsObj=None):
+        if not settingsObj:
+            settingsObj = self.settingsToDict()
+        for key in ['morningDir','daytimeDir','eveningDir','nightDir']:
+            if not key in settingsObj:
+                return False,key
+            if not settingsObj[key] or settingsObj[key] == '' or settingsObj[key] == '/':
+                return False,key
+        for key in ["Altitude", "Cycle", "Interval", "Latitude", "Longitude", "Order", "Twilight"]:
+            if not key in settingsObj:
+                return False,key
+        return True,None
+
+    def validateFileLists(self):
+        if not self.filelists:
+            return False,'filelists'
+        for key in ['morningDir','daytimeDir','eveningDir','nightDir']:
+            if not key in self.filelists:
+                return False,key
+            if not self.filelists[key] or not len(self.filelists[key]):
+                return False, key
+        return True,None
+
+    def getFileLists(self):
+        fileCnt = 0
+        flag,key = self.validateSettings()
+        if not flag:
+            error('(2) Error in settings for {}'.format(key))
+            self.showSettingsDialog()
+            return
+        for key in ['morningDir','daytimeDir','eveningDir','nightDir']:
+            d = os.path.abspath(self.__dict__[key])
+            o = self.__dict__['Order']
+            debug.debug('Scanning {} for files'.format(d))
+            self.filelists[key] = listsort(o,walker(d))
+            fileCnt += len(self.filelists[key])
+        debug.debug('File(s)',fileCnt)
+        flag, key = self.validateFileLists()
+        if not flag:
+            error('No files scanning for {}'.format(key))
+            self.show()
+            return
+    def confirmCancel(self):
+        debug.debug('Answer is',answer)
+        if answer == Gtk.ResponseType.YES:
+            return True
+        return False
+    def cb_forceReload(self,*args):
+        self.forceReload = controls['Reload']['widget'].get_value()
+        self.modified = True
+        self.setTitle()
+
+    def settingsDone(self,widget,data,*args):
+        def goodToGo():
+            self.window.hide()
+
+        if not self.modified:
+            goodToGo()
+            return True
+        if not data:
+            answer = dialogs.question("Changes have not been saved?\nCancel settings?", parent=self.window)
+            if answer == Gtk.ResponseType.YES:
+                goodToGo()
+            return True
+
+        if data:
+            settingsData = json.dumps(data,sort_keys=True, indent=4)
+            debug.debug('Saving data',settingsData)
+            try:
+                open(self.settingsFile,'wt').write(settingsData)
+                self.modified = False
+
+                goodToGo()
+            except Exception as e:
+                error('Error saving settings {}'.format(e))
+                return True
+            self.go()
+            return
+        goodToGo()
+        return True           
+
+    def cb_cycleSetState(self,widget,*args):
+        state = not widget.get_state()
+        debug.debug('Cycle State is ',state)
+        self.__dict__['Cycle'] = state
+        self.controls['Order']['widget'].set_sensitive(self.__dict__['Cycle'])
+        self.modified = True
+        self.setTitle()
+
+    def cb_orderChanged(self,widget,*args):
+        self.modified = True
+        self.setTitle()
+
+    def cb_fileSet(self,widget,*args):
+        self.modified = True
+        self.setTitle()
+
+    def cb_setModified(self,widget,*args):
+        self.modified = True
+        self.setTitle()
+
+    def cb_button(self,button,*args):
+        debug.debug('Button click',button,args)
+        if button == self.controls["Cancel"]["widget"]:
+            self.settingsDone(button,None)
+            return False
+        if button == self.controls["Quit"]["widget"]:
+            r = dialogs.question('Are you sure you want to quit?',parent=self.window)
+            if r == Gtk.ResponseType.YES:
+                self.showing = False
+                self.window.hide()
+                self.quit()
+                sys.exit(1)
+            return False
+        if button == self.controls["About"]["widget"]:            
+            self.about()
+            return
+        settingsData = self.controlsToDict()
+        if self.forceReload:
+            self.getFileLists()
+        self.settingsDone(button,settingsData)
+
+    def settingsToDict(self):
+        settingsData = {}
+        for k in settingsKeys:
+            settingsData[k] = self.__dict__[k]
+        return settingsData
+
+    def controlsToDict(self):
+        settingsData = {}
+        for k in settingsKeys:
+            t = self.controls[k]['type']
+            w = self.controls[k]['widget']
+            if t == 'file':
+                self.__dict__[k] = w.get_filename()
+            elif t == 'cb':
+                s = w.get_active_text()
+                self.__dict__[k] = s
+
+            elif t == 'switch':
+                self.__dict__[k] = w.get_state()
+            elif k == 'Interval':
+                self.__dict__[k] = int(w.get_value())
+            else:
+                self.__dict__[k] = w.get_text()
+            settingsData[k] = self.__dict__[k]
+        return settingsData        
+
+    def about(self):
+        pb = GdkPixbuf.Pixbuf.new_from_file(iconFile)
+        ab = Gtk.AboutDialog(parent=self.window)
+        ab.set_program_name('Timely Wallpaper')
+        ab.set_version('0.1')
+        ab.set_copyright('Copyright (c) 2017 Nicole Stevens')
+        ab.set_comments('Rotate Desktop Wallpaper based on time of day')
+        ab.set_logo(pb)
+        try:
+            license_text = open('LICENSE.txt').read()
+            ab.set_license(license_text)
+        except Exception as e:
+            debug.debug('Cannot load license {}'.format(e))
+        ab.set_authors(['Nicole Stevens'])
+        ab.run()
+        ab.destroy()
+
+    def cb_debug(self,*args):
+        global logWindow
+        if not logWindow:
+            logWindow = debug.debugWindow(iconFile)
+            logWindow.show()
+        else:
+            logWindow.toggleVisibility()
+
+def walker(basepath):
+    filesin = []
+    filesout = []
+    if basepath == None:
+        return filesout
+    try:
+        os.path.walk(basepath,lambda tag,path,files: [filesin.append(os.path.join(path,x)) for x in files],None)
+    except:
+        pass        
+    for f in filesin:
+        mtype = mimetypes.guess_type(f)
+        if not mtype or not mtype[0]:
+            continue
+        if 'image/' in mtype[0]:
+            filesout.append((f,os.stat(f).st_mtime))
+    debug.debug('{} has {} files'.format(basepath,len(filesout)))
+    return filesout
+
+def listsort(order,lst):
+    if order == 'Random':
+        return random.shuffle(lst)
+    if order == 'Name':
+        return sorted(lst,key=lambda x: x[0])
+    else:
+        return sorted(lst,key=lambda x: x[1])
+
+
+if __name__ == "__main__":
+    flags = {'debug': False, "logWindow": False}
+
+    def setDebug():
+        flags["debug"] = True
+    def enableDebugWindow():
+        flags["logWindow"] = True
+    def showHelp():
+        print '{0}: usage: {0} --debug|-d, --log-window|-l, --help'.format(os.path.basename(sys.argv[0]))
+        print '    --debug|-d      Start with messages logged internally'        
+        print '    --log-window|-l Show log window initially, this turns on message logging'
+        print '    --help|-h       This list'
+        sys.exit(0)
+    debug.setdebug(False)
+    specialOps = [(['--log-window','-w'],enableDebugWindow),
+                  (['--debug','-d'],setDebug),
+                  (['--help', '-h'],showHelp)]
+    for op in specialOps:
+        for o in op[0]:
+            if o in sys.argv:
+                sys.argv.remove(o)
+                op[1]()
+    app = wallPaperApp(flags)
+    app.run()
