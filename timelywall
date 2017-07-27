@@ -267,11 +267,14 @@ class wallPaperApp(Gtk.Application):
 
     def validateFileLists(self):
         if not self.filelists:
+            debug.debug('No filelist at all!')
             return False,'filelists'
         for key in ['morningDir','daytimeDir','eveningDir','nightDir']:
             if not key in self.filelists:
+                debug.debug('no list for {}'.format(key))
                 return False,key
             if not self.filelists[key] or not len(self.filelists[key]):
+                debug.debug('empty list for {}'.format(key))
                 return False, key
         return True,None
 
@@ -287,12 +290,14 @@ class wallPaperApp(Gtk.Application):
             o = self.__dict__['Order']
             debug.debug('Scanning {} for files'.format(d))
             self.filelists[key] = listsort(o,walker(d))
+            if self.filelists[key] == None:
+                self.filelists[key] = []
             fileCnt += len(self.filelists[key])
         debug.debug('File(s)',fileCnt)
         flag, key = self.validateFileLists()
         if not flag:
             error('No files scanning for {}'.format(key))
-            self.show()
+            self.showDialog()
             return
     def confirmCancel(self):
         debug.debug('Answer is',answer)
@@ -432,20 +437,25 @@ def walker(basepath):
         return filesout
     try:
         os.path.walk(basepath,lambda tag,path,files: [filesin.append(os.path.join(path,x)) for x in files],None)
-    except:
+    except Exception as e:
+        debug.debug('Error scanning {}: {}'.format(basename,e))
         pass        
     for f in filesin:
         mtype = mimetypes.guess_type(f)
         if not mtype or not mtype[0]:
+            debug.debug('Cannot get mimetype for {}'.format(f))
             continue
         if 'image/' in mtype[0]:
             filesout.append((f,os.stat(f).st_mtime))
+        else:
+            debug.debug('Warning, unknown mimetype({}) for {}'.format(mtype[0],f))
     debug.debug('{} has {} files'.format(basepath,len(filesout)))
     return filesout
 
 def listsort(order,lst):
     if order == 'Random':
-        return random.shuffle(lst)
+        random.shuffle(lst)
+        return lst
     if order == 'Name':
         return sorted(lst,key=lambda x: x[0])
     else:
@@ -473,8 +483,11 @@ if __name__ == "__main__":
     for op in specialOps:
         for o in op[0]:
             if o in sys.argv:
-                if o[2]:
-                    sys.argv.remove(o)
+                try:
+                    if o[2]:
+                        sys.argv.remove(o)
+                except:
+                    pass
                 op[1]()
     app = wallPaperApp(flags)
     app.run(sys.argv)
