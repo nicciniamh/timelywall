@@ -3,7 +3,7 @@
 Changes Wallpaper based on time of day and position of sun. Will work with Cinnamon and likely
 Gnome and Unity. Maybe Mate too. 
 
-##Wallpaper is changed for
+## Wallpaper is changed for
 
 * Night - whenever the sun is below the the horizon after local twilight
 * Morning - During local twilight before noon. 
