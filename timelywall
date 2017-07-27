@@ -460,19 +460,21 @@ if __name__ == "__main__":
     def enableDebugWindow():
         flags["logWindow"] = True
     def showHelp():
-        print '{0}: usage: {0} --debug|-d, --log-window|-l, --help'.format(os.path.basename(sys.argv[0]))
+        print 'Usage:\n  {} [OPTION...]'.format(os.path.basename(sys.argv[0]))
         print '    --debug|-d      Start with messages logged internally'        
         print '    --log-window|-l Show log window initially, this turns on message logging'
-        print '    --help|-h       This list'
+        print '    --help|-h       This list\n'
+        print '    --help-gtk      GTK+ help list'
         sys.exit(0)
     debug.setdebug(False)
-    specialOps = [(['--log-window','-w'],enableDebugWindow),
-                  (['--debug','-d'],setDebug),
-                  (['--help', '-h'],showHelp)]
+    specialOps = [(['--log-window','-w'],enableDebugWindow, True),
+                  (['--debug','-d'],setDebug, True),
+                  (['--help', '-h'],showHelp, False)]
     for op in specialOps:
         for o in op[0]:
             if o in sys.argv:
-                sys.argv.remove(o)
+                if o[2]:
+                    sys.argv.remove(o)
                 op[1]()
     app = wallPaperApp(flags)
-    app.run()
+    app.run(sys.argv)
