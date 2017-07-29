@@ -434,6 +434,7 @@ class wallPaperApp(Gtk.Application):
         ab.set_copyright('Copyright (c) 2017 Nicole Stevens')
         ab.set_comments('Rotate Desktop Wallpaper based on time of day')
         ab.set_logo(pb)
+        ab.set_website('https://github.com/nicciniamh/timelywall')
         try:
             license_text = open('LICENSE.txt').read()
             ab.set_license(license_text)
