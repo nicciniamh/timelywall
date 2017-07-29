@@ -18,8 +18,9 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf
 from cStringIO import StringIO
 
-debugFlag = False
+debugFlag = True
 logData = None
+debugPos = 0
 def setdebug(flag):
     global debugFlag
     if(flag):
@@ -34,18 +35,25 @@ def debug(*args):
         caller = inspect.getframeinfo(inspect.stack()[1][0])
         fname = str(caller.filename).replace(os.getcwd()+'/','')
         now = datetime.datetime.now()
-        x = ['{:02}:{:02}:{:02}: {}:{} - '.format(now.hour,now.minute,now.second,fname, caller.lineno)]
+        timestr = '{:02}:{:02}:{:02}'.format(now.hour,now.minute,now.second)
+        idstr = '{}: {}:{}'.format(timestr, fname, caller.lineno)
+        x = ['{} - '.format(idstr)]
         for a in args:
             x.append('{}'.format(a))
         output = ' '.join(x)
-        print output
+        #print output
         if not logData:
-            logData = StringIO()
+            try:
+                logData = open('./logfile.txt','a+',0)
+            except Exception as e:
+                sys.stderr.write('{} - Fatal - logfile could not be opened: {}\n'.format(idstr,e))
+                sys.exit(1)
+            greeting = '{} Welcome to Timely Wallpaper - Logging to {}\n'.format(timestr,os.path.abspath('./logfile.txt'))
+            logData.write(greeting)
+            sys.stdout.write(greeting)
+            debugPos = logData.tell()
         logData.write('{}\n'.format(output))
 
-def getDebugData():
-    logData.seek(0,0)
-    return logData.read()
 
 class debugWindow:
     def __init__(self,iconFile):
@@ -65,7 +73,6 @@ class debugWindow:
         self.txt = Gtk.TextView(buffer=self.buf)
         self.txt.connect('size-allocate',self.scrollToBottom)
         self.txt.set_editable(False)
-        self.debugPos = 0
         self.win.add(self.box)
         self.sw.add(self.txt)
         self.box.add(self.sw)
@@ -76,13 +83,14 @@ class debugWindow:
         self.ticker()
 
     def ticker(self):
+        global debugPos
         if not logData:
             return
         tmpPos = logData.tell()
-        logData.seek(self.debugPos,0)
+        logData.seek(debugPos,0)
         text = logData.read()
         logData.seek(tmpPos,0)
-        self.debugPos = tmpPos
+        debugPos = tmpPos
         end_iter = self.buf.get_end_iter()
         self.buf.insert(end_iter, text)
         self.timeout_source = GObject.timeout_add(1000,self.ticker)

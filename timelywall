@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, gi, json, glob, mimetypes, random
+import os, sys, gi, json, glob, mimetypes, random,time
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 path=os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -69,11 +69,8 @@ class wallPaperApp(Gtk.Application):
             "Altitude": {"type": "entry", "widget": None},
             "Twilight": {"type": "cb", "widget": None},
             "Reload": {'type': 'button', 'widget': None},
-            "debug": {'type': 'button', 'widget': None},
             "Cancel": {"type": "button", "widget": None},
             "Save": {"type": "button", "widget": None},
-            "Quit": {"type": "button", "widget": None},
-            "About": {"type": "button", "widget": None},
         }
         builder = Gtk.Builder.new_from_file('lib/settings.glade')
         self.window = builder.get_object('window1')
@@ -95,10 +92,6 @@ class wallPaperApp(Gtk.Application):
         self.window.connect('delete-event', self.settingsDone, None)
         builder.connect_signals(self)
         self.loadFromFile()
-
-    def cb_statusActivate(self,*args):
-        debug.debug('Showing settings')
-        self.showDialog()
 
     def go(self):
         if(self.timeout_source):
@@ -157,14 +150,53 @@ class wallPaperApp(Gtk.Application):
             debug.debug('Logging to viewer')
             logWindow.show()
 
+        self.createMenu()
         self.statusIcon = Gtk.StatusIcon.new_from_file(iconFile)
         self.statusIcon.set_title('Timely Wallpaper Changer')
-        self.statusIcon.set_tooltip_text('Timely Wallpaper Changer\nChanges wallpaper based on time of day and position of sun')
+        self.statusIcon.set_tooltip_text('Click for next image, right click for menu.')
         self.statusIcon.connect('activate',self.cb_statusActivate)
+        self.statusIcon.connect('popup-menu', self.cb_statusRightClick)
 
         self.go()
         while True:
             Gtk.main_iteration()
+
+
+    def cb_statusRightClick(self,data, eventButton, eventTime, *args):
+        debug.debug('Showing Menu',args)
+        self.menu.show_all()
+        self.menu.popup(None,None,None,None,eventButton,eventTime)
+
+    def cb_statusActivate(self,*args):
+        self.go()
+
+    def cb_menuQuit(self,*args):
+        r = dialogs.question('Are you sure you want to quit?',parent=self.window)
+        if r == Gtk.ResponseType.YES:
+            self.showing = False
+            self.window.hide()
+            self.quit()
+            sys.exit(1)
+        return False
+
+    def cb_menuSettings(self,*args):
+        self.showDialog()
+
+    def cb_menuAbout(self,*args):
+        self.about()
+
+    def createMenu(self):
+        self.menu = Gtk.Menu()
+        self.menuitems = [  ['Settings',    self.cb_menuSettings,   None],
+                            ['About',       self.cb_menuAbout,      None],
+                            ['Quit',        self.cb_menuQuit,       None]]
+
+        for i in range(len(self.menuitems)):
+            item,callback = self.menuitems[i][0],self.menuitems[i][1]
+            mi = Gtk.MenuItem(item)
+            mi.connect_object('activate',callback,item)
+            self.menu.append(mi)
+            self.menuitems[i][2] = mi
 
     def setTitle(self):
         if self.modified:
@@ -363,17 +395,6 @@ class wallPaperApp(Gtk.Application):
         if button == self.controls["Cancel"]["widget"]:
             self.settingsDone(button,None)
             return False
-        if button == self.controls["Quit"]["widget"]:
-            r = dialogs.question('Are you sure you want to quit?',parent=self.window)
-            if r == Gtk.ResponseType.YES:
-                self.showing = False
-                self.window.hide()
-                self.quit()
-                sys.exit(1)
-            return False
-        if button == self.controls["About"]["widget"]:            
-            self.about()
-            return
         settingsData = self.controlsToDict()
         if self.forceReload:
             self.getFileLists()
@@ -409,7 +430,7 @@ class wallPaperApp(Gtk.Application):
         pb = GdkPixbuf.Pixbuf.new_from_file(iconFile)
         ab = Gtk.AboutDialog(parent=self.window)
         ab.set_program_name('Timely Wallpaper')
-        ab.set_version('0.1')
+        ab.set_version('0.2')
         ab.set_copyright('Copyright (c) 2017 Nicole Stevens')
         ab.set_comments('Rotate Desktop Wallpaper based on time of day')
         ab.set_logo(pb)
@@ -472,22 +493,19 @@ if __name__ == "__main__":
     def showHelp():
         print 'Usage:\n  {} [OPTION...]'.format(os.path.basename(sys.argv[0]))
         print '    --debug|-d      Start with messages logged internally'        
-        print '    --log-window|-l Show log window initially, this turns on message logging'
+#        print '    --log-window|-l Show log window initially, this turns on message logging'
         print '    --help|-h       This list\n'
         print '    --help-gtk      GTK+ help list'
         sys.exit(0)
     debug.setdebug(False)
-    specialOps = [(['--log-window','-w'],enableDebugWindow, True),
-                  (['--debug','-d'],setDebug, True),
-                  (['--help', '-h'],showHelp, False)]
-    for op in specialOps:
-        for o in op[0]:
-            if o in sys.argv:
-                try:
-                    if o[2]:
-                        sys.argv.remove(o)
-                except:
-                    pass
-                op[1]()
+    specialOps = ((('--log-window','-w'),enableDebugWindow, True),
+                  (('--debug','-d'),setDebug, True),
+                  (('--help', '-h'),showHelp, False))
+    for flaglist,func,remove in specialOps:
+        for flag in flaglist:
+            if flag in sys.argv:
+                if remove:
+                    sys.argv.remove(flag)
+                func()
     app = wallPaperApp(flags)
     app.run(sys.argv)
