@@ -9,3 +9,5 @@ etc/
 *.bak
 logfile.txt
 test.py
+timelywall.desktop
+config.json
