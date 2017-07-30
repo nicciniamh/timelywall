@@ -11,6 +11,12 @@ Gnome and Unity. Maybe Mate too.
 * Evening - During local twilight after noon. 
 
 ## Installation
+
+Requirements:
+    pyephem - Install from pip or pypi 
+    GTK 3.0
+    Python 2.6+
+    
 The program will run from any directory it is cloned or unzipped to. To set up a desktop menu entry you may use installdesktop.sh from the directory where you cloned or unzipped the files and the desktop file will be created and the entry made. The program knows how to "find it's way home" - when run it will change to the directory where the main script is located and get its resources from there.
 
 ## Configuration

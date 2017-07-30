@@ -44,7 +44,7 @@ def debug(*args):
         #print output
         if not logData:
             try:
-                logData = open('./logfile.txt','a+',0)
+                logData = open('./logfile.txt','w+',0)
             except Exception as e:
                 sys.stderr.write('{} - Fatal - logfile could not be opened: {}\n'.format(idstr,e))
                 sys.exit(1)

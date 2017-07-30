@@ -5,6 +5,6 @@ Comment=Changes desktop wallpaper based on time of day and position of the sun.
 Type=Application
 Categories=Desktop
 Icon=@PATH/icon.png
-Exec=@PATH/timelywall
+Exec=@PATH/timelywall -d
 Terminal=false
 Path=@PATH
