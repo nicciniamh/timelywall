@@ -497,7 +497,7 @@ if __name__ == "__main__":
 
     def setDebug():
         flags["debug"] = True
-   def showHelp():
+    def showHelp():
         print 'Usage:\n  {} [OPTION...]'.format(os.path.basename(sys.argv[0]))
         print '    --debug|-d      Start with messages logged to logfile.txt'
         print '    --help|-h       This list\n'
