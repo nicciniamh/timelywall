@@ -14,6 +14,8 @@ iconFile = 'logo.png'
 orderMap = ("Random","Name","Date")
 Twilights = ('Civil','Nautical','Astronomical')
 settingsKeys = ('daytimeDir', 'Altitude', 'Interval', 'Longitude', 'Latitude', 'Order', 'nightDir', 'eveningDir', 'morningDir', 'Twilight', 'Cycle')
+folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
+
 logWindow = None
 
 def setLogWindow():
@@ -89,7 +91,7 @@ class wallPaperApp(Gtk.Application):
         self.connect("activate", self.on_activate)
         self.connect("startup", self.on_startup)
         self.connect("shutdown", self.on_shutdown)
-        self.window.connect('delete-event', self.settingsDone, None)
+        self.window.connect('delete-event', self.checkClose, None)
         builder.connect_signals(self)
         self.loadFromFile()
 
@@ -106,7 +108,6 @@ class wallPaperApp(Gtk.Application):
             self.timeout_source = GObject.timeout_add(self.Interval*1000,self.go)
 
     def periodic(self):
-        debug.debug('periodic')
         if not self.settingsValid():
             return
         timeType = self.getTimeType()
@@ -163,7 +164,6 @@ class wallPaperApp(Gtk.Application):
 
 
     def cb_statusRightClick(self,data, eventButton, eventTime, *args):
-        debug.debug('Showing Menu',args)
         self.menu.show_all()
         self.menu.popup(None,None,None,None,eventButton,eventTime)
 
@@ -320,7 +320,6 @@ class wallPaperApp(Gtk.Application):
         for key in ['morningDir','daytimeDir','eveningDir','nightDir']:
             d = os.path.abspath(self.__dict__[key])
             o = self.__dict__['Order']
-            debug.debug('Scanning {} for files'.format(d))
             self.filelists[key] = listsort(o,walker(d))
             if self.filelists[key] == None:
                 self.filelists[key] = []
@@ -331,48 +330,60 @@ class wallPaperApp(Gtk.Application):
             error('No files scanning for {}'.format(key))
             self.showDialog()
             return
-    def confirmCancel(self):
-        debug.debug('Answer is',answer)
-        if answer == Gtk.ResponseType.YES:
-            return True
-        return False
+
     def cb_forceReload(self,*args):
         self.forceReload = controls['Reload']['widget'].get_value()
         self.modified = True
         self.setTitle()
 
-    def settingsDone(self,widget,data,*args):
-        def goodToGo():
-            self.window.hide()
+    def checkClose(self,*args):
+        answer = Gtk.ResponseType.CANCEL
+        if self.modified:
+            answer = dialogs.question(  "Changes have not been saved?\nSave settings?", 
+                                        parent=self.window,
+                                        buttons='OKCANCEL')
+        if answer == Gtk.ResponseType.OK:
+            self.saveSettings()
+        self.window.hide()
+        return False
 
-        if not self.modified:
-            goodToGo()
-            return True
-        if not data:
-            answer = dialogs.question("Changes have not been saved?\nCancel settings?", parent=self.window)
-            if answer == Gtk.ResponseType.YES:
-                goodToGo()
-            return True
+    def cb_button(self,button,*args):
+        if button == self.controls["Cancel"]["widget"]:
+            self.checkClose()
 
-        if data:
-            settingsData = json.dumps(data,sort_keys=True, indent=4)
-            debug.debug('Saving data',settingsData)
-            try:
-                open(self.settingsFile,'wt').write(settingsData)
-                self.modified = False
+        if button == self.controls["Save"]["widget"] and self.modified:
+            self.saveSettings()
 
-                goodToGo()
-            except Exception as e:
-                error('Error saving settings {}'.format(e))
-                return True
-            self.go()
-            return
-        goodToGo()
-        return True           
+    def saveSettings(self,*args):
+        settingsData = self.controlsToDict()
+        settingsJson = json.dumps(settingsData,sort_keys=True, indent=4)
+        debug.debug('Saving data',settingsJson)
+        try:
+            open(self.settingsFile,'wt').write(settingsJson)
+            self.modified = False
+        except Exception as e:
+            error('Error saving settings {}'.format(e))
+            return False
+        #
+        # Implicit forceReload if settings for folders have changed
+        #
+        for f in folderKeys:
+            if self.__dict__[f] != settingsData[f]:
+                self.forceReload = True
+        #
+        # Copy new settings data to object properties
+        #
+        for k in settingsKeys:
+            self.__dict__[k] = settingsData[k]
+        if self.forceReload:
+            self.getFileLists()
+        self.forceReload = False
+        self.window.hide()
+        self.go()
+        return False
 
     def cb_cycleSetState(self,widget,*args):
         state = not widget.get_state()
-        debug.debug('Cycle State is ',state)
         self.__dict__['Cycle'] = state
         self.controls['Order']['widget'].set_sensitive(self.__dict__['Cycle'])
         self.modified = True
@@ -390,15 +401,6 @@ class wallPaperApp(Gtk.Application):
         self.modified = True
         self.setTitle()
 
-    def cb_button(self,button,*args):
-        debug.debug('Button click',button,args)
-        if button == self.controls["Cancel"]["widget"]:
-            self.settingsDone(button,None)
-            return False
-        settingsData = self.controlsToDict()
-        if self.forceReload:
-            self.getFileLists()
-        self.settingsDone(button,settingsData)
 
     def settingsToDict(self):
         settingsData = {}
@@ -412,28 +414,27 @@ class wallPaperApp(Gtk.Application):
             t = self.controls[k]['type']
             w = self.controls[k]['widget']
             if t == 'file':
-                self.__dict__[k] = w.get_filename()
+                settingsData[k] = w.get_filename()
             elif t == 'cb':
                 s = w.get_active_text()
-                self.__dict__[k] = s
+                settingsData[k] = s
 
             elif t == 'switch':
-                self.__dict__[k] = w.get_state()
+                settingsData[k] = w.get_state()
             elif k == 'Interval':
-                self.__dict__[k] = int(w.get_value())
+                settingsData[k] = int(w.get_value())
             else:
-                self.__dict__[k] = w.get_text()
-            settingsData[k] = self.__dict__[k]
+                settingsData[k] = w.get_text()
         return settingsData        
 
     def about(self):
-        pb = GdkPixbuf.Pixbuf.new_from_file(iconFile)
         ab = Gtk.AboutDialog(parent=self.window)
+        pb = GdkPixbuf.Pixbuf.new_from_file(iconFile)
+        ab.set_logo(pb)
         ab.set_program_name('Timely Wallpaper')
         ab.set_version('0.2')
         ab.set_copyright('Copyright (c) 2017 Nicole Stevens')
         ab.set_comments('Rotate Desktop Wallpaper based on time of day')
-        ab.set_logo(pb)
         ab.set_website('https://github.com/nicciniamh/timelywall')
         try:
             license_text = open('LICENSE.txt').read()

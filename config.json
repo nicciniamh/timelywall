@@ -1,7 +1,7 @@
 {
     "Altitude": "0", 
     "Cycle": true, 
-    "Interval": 30, 
+    "Interval": 300, 
     "Latitude": "45:31:23.0", 
     "Longitude": "-123:56:34.5", 
     "Order": "Random", 
