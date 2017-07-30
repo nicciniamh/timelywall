@@ -17,12 +17,6 @@ Twilights = ('Civil','Nautical','Astronomical')
 settingsKeys = ('daytimeDir', 'Altitude', 'Interval', 'Longitude', 'Latitude', 'Order', 'nightDir', 'eveningDir', 'morningDir', 'Twilight', 'Cycle')
 folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
 
-logWindow = None
-
-def setLogWindow():
-    global logWindow
-    logWindow = debug.debugWindow(iconFile)
-
 def error(msg):
     debug.debug('ERROR: ',msg)
     dialogs.error(msg,buttons='OK')
@@ -146,11 +140,6 @@ class wallPaperApp(Gtk.Application):
         if self.flags["debug"]:
             debug.setdebug(True)
             debug.debug('Started Logging')
-        if self.flags["logWindow"]:
-            setLogWindow()
-            debug.setdebug(True)
-            debug.debug('Logging to viewer')
-            logWindow.show()
 
         self.createMenu()
         self.statusIcon = Gtk.StatusIcon.new_from_file(iconFile)
@@ -493,7 +482,7 @@ def getJSONstring(obj):
     return json.dumps(obj,sort_keys=True, indent=4)
 
 if __name__ == "__main__":
-    flags = {'debug': False, "logWindow": False}
+    flags = {'debug': False}
 
     def setDebug():
         flags["debug"] = True
