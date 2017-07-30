@@ -13,7 +13,7 @@ Gnome and Unity. Maybe Mate too.
 ## Installation
 
 Requirements:
-* pyephem - Install from pip or pypi 
+* pyephem - See below
 * GTK 3.0
 * Python 2.6+
     
@@ -57,4 +57,11 @@ It is morning when it is before noon and the sun is between -6 and 0 degrees on 
 it is after noon when the hour is >= 12 and the sun is greater than 0 degrees on the horizon
 
 It is evening when it is after noon and the sun is between 0 and -6 degres on the horizon
+
+# Intalling pyephem
+You must have the package python-pip installed for this. To install python-pip in Debian based 
+distributions, install with: `sudo apt-get install python-pip`
+
+You may then install pyephem with: `pip install ephem` or `sudo pip install ephem`
+
 
