@@ -6,8 +6,8 @@
     "Longitude": "-123:56:34.5", 
     "Order": "Random", 
     "Twilight": "Civil", 
-    "daytimeDir": "/home/nicci/Pictures/timelywalls/daytime", 
-    "eveningDir": "/home/nicci/Pictures/timelywalls/evening", 
-    "morningDir": "/home/nicci/Pictures/timelywalls/morning", 
-    "nightDir": "/home/nicci/Pictures/timelywalls/night"
+    "daytimeDir": "~/Pictures/timelywalls/daytime", 
+    "eveningDir": "~/Pictures/timelywalls/evening", 
+    "morningDir": "~/Pictures/timelywalls/morning", 
+    "nightDir": "~/Pictures/timelywalls/night"
 }

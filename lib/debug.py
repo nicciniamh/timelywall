@@ -18,7 +18,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf
 from cStringIO import StringIO
 
-debugFlag = True
+debugFlag = False
 logData = None
 debugPos = 0
 def setdebug(flag):
