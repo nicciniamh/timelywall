@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Timely Wallpaper Changer
 # Copyright 2017 Nicole Stevens
@@ -31,10 +32,16 @@ orderMap = ("Random","Name","Date")
 Twilights = ('Civil','Nautical','Astronomical')
 controlKeys = ('Altitude', 'Interval', 'Longitude', 'Latitude', 'Order','Twilight', 'Cycle')
 folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
+twilightAdjs = (u'With Twilight',u'6 ° Above Horizon', u'12 ° Above Horizon', u'° Above Horizon')
 settingsKeys = folderKeys+controlKeys
 def error(msg):
     debug.debug('ERROR: ',msg)
     dialogs.error(msg,buttons='OK')
+
+def twilightAdjustment(s):
+    if not s in twilightAdjs:
+        return 0
+    return twilightAdjs.index(s)
 
 class wallPaperApp(Gtk.Application):
     def __init__(self,flags):
@@ -61,7 +68,9 @@ class wallPaperApp(Gtk.Application):
         self.eveningDir = ''
         self.morningDir = ''
         self.Twilight = ''
-        self.Cycle = False        
+        self.Cycle = False 
+        self.MorningEnds = "With Twilight"
+        self.EveningStarts = 0,       
         self.filelists = {
             "morningDir": None,
             "daytimeDir": None,
@@ -80,6 +89,8 @@ class wallPaperApp(Gtk.Application):
             "Latitude": {"type": "entry", "widget": None},
             "Altitude": {"type": "entry", "widget": None},
             "Twilight": {"type": "cb", "widget": None},
+            "MorningEnds": {"type": "cb", "widget": None},
+            "EveningStarts": {"type": "cb", "widget": None},
             "Reload": {'type': 'button', 'widget': None},
             "Cancel": {"type": "button", "widget": None},
             "Save": {"type": "button", "widget": None},
@@ -142,7 +153,7 @@ class wallPaperApp(Gtk.Application):
         desktop.setBackground(desktopEnvironment, self.curFile)
 
     def getTimeType(self):
-        return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight)
+        return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight,self.MorningEnds,self.EveningStarts)
 
     def on_startup(self,*args):
         debug.debug('Startup')
@@ -242,6 +253,8 @@ class wallPaperApp(Gtk.Application):
                 w.set_active(int(orderMap.index(kdata)))
             elif k == 'Twilight':
                 w.set_active(int(Twilights.index(kdata)))
+            elif k == 'MorningEnds' or k == 'EveningStarts':
+                w.set_active(twilightAdjustment(kdata))
             elif k == 'Cycle':
                 w.set_state(kdata)
             elif c["type"] == "entry":

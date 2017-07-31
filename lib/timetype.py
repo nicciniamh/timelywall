@@ -15,7 +15,7 @@
 # limitations under the License.
 import debug, datetime, ephem, math
 twilightDegrees = {'civil': -6, 'nautical': -12, 'astronomical': -18}
-def getTimeType(latitude, longitude, altitude, twilight='civil'):
+def getTimeType(latitude, longitude, altitude, twilight='civil', morningends=None,eveningstarts=None):
     '''
     get the time of day time (night,morning,day,evening) based on lat/lon/alt
     Latitude and Longitude can be in decimmal or deg:min:sec notation. 
@@ -64,11 +64,15 @@ def getTimeType(latitude, longitude, altitude, twilight='civil'):
     if hour < 12:
         if elevation < 0:
             return 'morning'
-        else:
-            return 'daytime'
+        if morningends and elevation < morningends:
+            return 'morning'
+        return 'daytime'
     elif hour >= 12:
         if elevation < 0:
             return 'evening'
+
+    if eveningstarts and elevation < eveningstarts:
+        return 'evening'
     return 'daytime'
 
 if __name__ == "__main__":

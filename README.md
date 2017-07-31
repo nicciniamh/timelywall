@@ -31,6 +31,8 @@ An icon is placed in the system tray. It will, when clicked, bring up the config
 * Latitude/Longitude: Where you are in the world. (See notes below)
 * Altitude: Your elevation. 
 * Twilight Type: Civil, Nautical, Astronomical (See notes below)
+* MorningEnds: Follow twilight or end morning when the sun is 6°, 12° or 18° above horizon
+* EveningStarts: Follow twilight or start evening when the sun is 6°, 12° or 18° above horizon
 
 ## Notes
 Latitude and Longitude can be in decimmal or deg:min:sec notation. 

@@ -113,7 +113,7 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">5</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
             <child>
@@ -156,7 +156,7 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">5</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
             <child>
@@ -250,7 +250,7 @@ Latitude (This can be found with Google Maps)</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">7</property>
+                <property name="top_attach">6</property>
               </packing>
             </child>
             <child>
@@ -287,7 +287,7 @@ Longitude (This can be found with Google Maps)</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">7</property>
+                <property name="top_attach">6</property>
               </packing>
             </child>
             <child>
@@ -325,7 +325,7 @@ Altitude (This can be found with Google Maps)</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">8</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
             <child>
@@ -352,6 +352,8 @@ Altitude (This can be found with Google Maps)</property>
 Nautical twilight is when the sun is 12 degrees below the horizon.
 Astronomical twilight is when the sun is 18 degrees below the horizon.
 </property>
+                    <property name="margin_left">10</property>
+                    <property name="hexpand">True</property>
                     <property name="active">0</property>
                     <items>
                       <item id="0" translatable="yes">Civil</item>
@@ -369,7 +371,7 @@ Astronomical twilight is when the sun is 18 degrees below the horizon.
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">8</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
             <child>
@@ -395,7 +397,7 @@ Astronomical twilight is when the sun is 18 degrees below the horizon.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -409,27 +411,96 @@ Astronomical twilight is when the sun is 18 degrees below the horizon.
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
-              <object class="GtkCheckButton" id="Reload">
-                <property name="label" translatable="yes">Force Reload Images</property>
+              <object class="GtkBox" id="box6">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="tooltip_text" translatable="yes">If checked, after configuration is changed, images are rescanned even if the folders haven't been changed.</property>
-                <property name="xalign">0</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="cb_forceReload" swapped="no"/>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="label12">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">Morning Ends</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="MorningEnds">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Morning ends when with twilight or when the sun is 6°, 12°, or 18° above the horizon.</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item id="0" translatable="yes">With Twilight</item>
+                      <item id="6" translatable="yes">6 ° Above Horizon</item>
+                      <item id="12" translatable="yes">12 ° Above Horizon </item>
+                      <item id="18" translatable="yes">18 ° Above Horizon</item>
+                    </items>
+                    <signal name="changed" handler="cb_setModified" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box7">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="label13">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">Evening Starts</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="EveningStarts">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Evening starts when with twilight or when the sun is 6°, 12°, or 18° above the horizon.</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item id="0" translatable="yes">With Twilight</item>
+                      <item id="6" translatable="yes">6 ° Above Horizon</item>
+                      <item id="12" translatable="yes">12 ° Above Horizon </item>
+                      <item id="18" translatable="yes">18 ° Above Horizon</item>
+                    </items>
+                    <signal name="changed" handler="cb_setModified" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">8</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
