@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Timely Wallpaper Changer
 # Copyright 2017 Nicole Stevens
@@ -15,7 +16,7 @@
 # limitations under the License.
 import debug, datetime, ephem, math
 twilightDegrees = {'civil': -6, 'nautical': -12, 'astronomical': -18}
-def getTimeType(latitude, longitude, altitude, twilight='civil', morningends=None,eveningstarts=None):
+def getTimeType(latitude, longitude, altitude, twilight='civil', morningends=0,eveningstarts=0):
     '''
     get the time of day time (night,morning,day,evening) based on lat/lon/alt
     Latitude and Longitude can be in decimmal or deg:min:sec notation. 
@@ -40,7 +41,8 @@ def getTimeType(latitude, longitude, altitude, twilight='civil', morningends=Non
     if not twilight.lower() in twilightDegrees:
         raise ValueError('Twilight must be one of',', '.join(list(twilightDegrees.keys())))
     debug.debug('Calculating for {}/{} elevation {}'.format(latitude,longitude,altitude))
-    debug.debug('{} twilight is {} degrees below horizon'.format(twilight,abs(twilightDegrees[twilight.lower()])))
+    debug.debug(u'{} twilight is {}° below horizon'.format(twilight,abs(twilightDegrees[twilight.lower()])))    
+    debug.debug(u'Morning ends {}° above horizon, evening starts {}° above horizon'.format(morningends,eveningstarts))
     sun = ephem.Sun()
     observer = ephem.Observer()
     observer.lat = latitude

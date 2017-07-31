@@ -1,13 +1,15 @@
 {
     "Altitude": "0", 
     "Cycle": true, 
+    "EveningStarts": 1, 
     "Interval": 300, 
     "Latitude": "45:31:23.0", 
     "Longitude": "-123:56:34.5", 
+    "MorningEnds": 1, 
     "Order": "Random", 
     "Twilight": "Civil", 
-    "daytimeDir": "~/Development/timelywall/walls/daytime", 
-    "eveningDir": "~/Development/timelywall/walls/evening", 
-    "morningDir": "~/Development/timelywall/walls/morning", 
-    "nightDir": "~/Development/timelywall/walls/night"
+    "daytimeDir": "walls/daytime", 
+    "eveningDir": "walls/evening", 
+    "morningDir": "walls/morning", 
+    "nightDir": "walls/night"
 }

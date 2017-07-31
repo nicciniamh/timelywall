@@ -10,5 +10,4 @@ etc/
 logfile.txt
 test.py
 timelywall.desktop
-config.json
 *.foo

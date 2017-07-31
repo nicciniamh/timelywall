@@ -19,29 +19,33 @@
 import os, sys, gi, json, glob, mimetypes, random,time, re
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
-path=os.path.dirname(os.path.realpath(sys.argv[0]))
-os.chdir(path)
+ourPath=os.path.dirname(os.path.realpath(sys.argv[0]))
+os.chdir(ourPath)
 if not os.path.exists('lib'):
     sys.stderr.write('Cannot find library direcrory\n')
     sys.exit(1)
-sys.path.append(os.path.join(path,'lib'))    
+sys.path.append(os.path.join(ourPath,'lib'))    
 import debug, dialogs, timetype, desktop
 desktopEnvironment = os.environ.get('DESKTOP_SESSION')
 iconFile = 'logo.png'
 orderMap = ("Random","Name","Date")
 Twilights = ('Civil','Nautical','Astronomical')
-controlKeys = ('Altitude', 'Interval', 'Longitude', 'Latitude', 'Order','Twilight', 'Cycle')
+controlKeys = ('Altitude', 'Interval', 'Longitude', 'Latitude', 'Order','Twilight', 'Cycle','MorningEnds','EveningStarts')
 folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
 twilightAdjs = (u'With Twilight',u'6 ° Above Horizon', u'12 ° Above Horizon', u'° Above Horizon')
+adjDegrees =  (0,6,12,18)
 settingsKeys = folderKeys+controlKeys
 def error(msg):
     debug.debug('ERROR: ',msg)
     dialogs.error(msg,buttons='OK')
 
 def twilightAdjustment(s):
-    if not s in twilightAdjs:
+    s = s.split(' ')[0]
+    try:
+        return [i for i,elem in enumerate(twilightAdjs) if s in elem][0]
+    except IndexError:
         return 0
-    return twilightAdjs.index(s)
+    return 0
 
 class wallPaperApp(Gtk.Application):
     def __init__(self,flags):
@@ -69,8 +73,8 @@ class wallPaperApp(Gtk.Application):
         self.morningDir = ''
         self.Twilight = ''
         self.Cycle = False 
-        self.MorningEnds = "With Twilight"
-        self.EveningStarts = 0,       
+        self.MorningEnds = "0"
+        self.EveningStarts = "0",       
         self.filelists = {
             "morningDir": None,
             "daytimeDir": None,
@@ -116,6 +120,49 @@ class wallPaperApp(Gtk.Application):
         builder.connect_signals(self)
         self.loadFromFile()
 
+    def showDialog(self):
+        settingsData = self.settingsToDict()
+        keys = settingsKeys
+        for k in list(self.controls.keys()):
+            c = self.controls[k]
+            w = c['widget']
+            if not k in settingsData:
+                continue
+            kdata = settingsData[k]
+            if kdata == None:
+                debug.debug("Invald data for {}".format(k))
+                continue
+            if k == 'Order':
+                w.set_active(int(orderMap.index(kdata)))
+            elif k == 'Twilight':
+                w.set_active(int(Twilights.index(kdata)))
+            elif k == 'MorningEnds' or k == 'EveningStarts':
+                try:
+                    w.set_active(int(kdata))
+                except ValueError:
+                    debug.debug('Cannot equate {} to index'.format(k))
+                    w.set_active(0)
+            elif k == 'Cycle':
+                w.set_state(kdata)
+            elif c["type"] == "entry":
+                w.set_text(str(kdata))
+            elif c["type"] == 'file':
+                kdata = os.path.expanduser(kdata)
+                w.set_filename(kdata or '.')
+            elif k == 'Interval':
+                w.set_value(int(kdata))
+            elif 'k' == 'Twilight':
+                w.set_active(Twilights.index(kdata))
+
+        if 'Cycle' in self.__dict__ and self.__dict__['Cycle'] != None:
+            sensitive = self.__dict__['Cycle']
+        else:
+            sensitive = False
+        self.controls['Order']['widget'].set_sensitive(sensitive)
+        self.modified = False
+        self.setTitle()
+        self.window.show_all()
+
     def go(self):
         if(self.timeout_source):
             try:
@@ -153,7 +200,21 @@ class wallPaperApp(Gtk.Application):
         desktop.setBackground(desktopEnvironment, self.curFile)
 
     def getTimeType(self):
-        return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight,self.MorningEnds,self.EveningStarts)
+        try:
+            edeg = int(self.MorningEnds)
+        except TypeError:
+            self.MorningEnds, edeg = 0,0
+            debug.debug('morning ends index ({}) invalid, using default'.format(self.MorningEnds))
+        edeg = adjDegrees[edeg]
+
+        try:
+            sdeg = int(self.MorningEnds)
+        except TypeError:
+            self.EveningStarts, sdeg = 0,0
+            debug.debug('evening starts index ({}) invalid, using default'.format(self.EveningStarts))
+        sdeg = adjDegrees[sdeg]
+
+        return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight,edeg,sdeg)
 
     def on_startup(self,*args):
         debug.debug('Startup')
@@ -204,6 +265,7 @@ class wallPaperApp(Gtk.Application):
     def createMenu(self):
         self.menu = Gtk.Menu()
         self.menuitems = [  ['Settings',    self.cb_menuSettings,   None],
+                            ['Reload Images',   self.getFileLists,  None],
                             ['-',None,None],
                             ['About',       self.cb_menuAbout,      None],
                             ['-',None,None],
@@ -237,44 +299,6 @@ class wallPaperApp(Gtk.Application):
             valid,key = self.validateFileLists()
         return valid
 
-    def showDialog(self):
-        settingsData = self.settingsToDict()
-        keys = settingsKeys
-        for k in list(self.controls.keys()):
-            c = self.controls[k]
-            w = c['widget']
-            if not k in settingsData:
-                continue
-            kdata = settingsData[k]
-            if kdata == None:
-                debug.debug("Invald data for {}".format(k))
-                continue
-            if k == 'Order':
-                w.set_active(int(orderMap.index(kdata)))
-            elif k == 'Twilight':
-                w.set_active(int(Twilights.index(kdata)))
-            elif k == 'MorningEnds' or k == 'EveningStarts':
-                w.set_active(twilightAdjustment(kdata))
-            elif k == 'Cycle':
-                w.set_state(kdata)
-            elif c["type"] == "entry":
-                w.set_text(str(kdata))
-            elif c["type"] == 'file':
-                kdata = os.path.expanduser(kdata)
-                w.set_filename(kdata or '.')
-            elif k == 'Interval':
-                w.set_value(int(kdata))
-            elif 'k' == 'Twilight':
-                w.set_active(Twilights.index(kdata))
-
-        if 'Cycle' in self.__dict__ and self.__dict__['Cycle'] != None:
-            sensitive = self.__dict__['Cycle']
-        else:
-            sensitive = False
-        self.controls['Order']['widget'].set_sensitive(sensitive)
-        self.modified = False
-        self.setTitle()
-        self.window.show_all()
 
     def loadFromFile(self, settingsFile=None):
         if settingsFile:
@@ -438,6 +462,9 @@ class wallPaperApp(Gtk.Application):
             w = self.controls[k]['widget']
             if t == 'file':
                 settingsData[k] = w.get_filename()
+            elif k == 'MorningEnds' or k == 'EveningStarts':
+                x = w.get_active()
+                settingsData[k] = x
             elif t == 'cb':
                 s = w.get_active_text()
                 settingsData[k] = s
@@ -477,7 +504,15 @@ class wallPaperApp(Gtk.Application):
             logWindow.toggleVisibility()
 
 def abspathToHome(path):
-    return re.sub('^{}'.format(os.path.expanduser('~')),'~',path)
+    path = os.path.abspath(path)
+    if path.startswith(ourPath):
+        rex = r'^{}\/'.format(ourPath)
+        rep = ''
+    else:
+        rex = '^{}'.format(os.path.expanduser('~'))
+        rep = '~'
+    return re.sub(rex,rep,path)
+
 
 def walker(basepath):
     filesin = []

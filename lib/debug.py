@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Handy Debug Logger
 # Copyright 2017 Nicole Stevens
@@ -35,21 +36,23 @@ def debug(*args):
         caller = inspect.getframeinfo(inspect.stack()[1][0])
         fname = str(caller.filename).replace(os.getcwd()+'/','')
         now = datetime.datetime.now()
-        timestr = '{:02}:{:02}:{:02}'.format(now.hour,now.minute,now.second)
-        idstr = '{}: {}:{}'.format(timestr, fname, caller.lineno)
-        x = ['{} - '.format(idstr)]
+        timestr = u'{:02}:{:02}:{:02}'.format(now.hour,now.minute,now.second)
+        idstr = u'{}: {}:{}'.format(timestr, fname, caller.lineno)
+        x = [u'{} - '.format(idstr)]
         for a in args:
-            x.append('{}'.format(a))
-        output = ' '.join(x)
+            x.append(u'{}'.format(a))
+        output = u' '.join(x)
         #print output
         if not logData:
             try:
-                logData = open('./logfile.txt','w+',0)
+                logData = open('./logfile.txt','w+b',0)
             except Exception as e:
-                sys.stderr.write('{} - Fatal - logfile could not be opened: {}\n'.format(idstr,e))
+                sys.stderr.write(u'{} - Fatal - logfile could not be opened: {}\n'.format(idstr,e))
                 sys.exit(1)
-            greeting = '{} Welcome to Timely Wallpaper - Logging to {}\n'.format(timestr,os.path.abspath('./logfile.txt'))
+            greeting = u'{} Welcome to Timely Wallpaper - Logging to {}\n'.format(timestr,os.path.abspath('./logfile.txt'))
             logData.write(greeting)
             sys.stdout.write(greeting)
             debugPos = logData.tell()
-        logData.write('{}\n'.format(output))
+        outStr = output + '\n'
+        outStr = outStr.encode('utf-8')
+        logData.write(outStr)

@@ -440,9 +440,9 @@ Astronomical twilight is when the sun is 18 degrees below the horizon.
                     <property name="active">0</property>
                     <items>
                       <item id="0" translatable="yes">With Twilight</item>
-                      <item id="6" translatable="yes">6 ° Above Horizon</item>
-                      <item id="12" translatable="yes">12 ° Above Horizon </item>
-                      <item id="18" translatable="yes">18 ° Above Horizon</item>
+                      <item id="6" translatable="yes">6 degrees Above Horizon</item>
+                      <item id="12" translatable="yes">12 degrees Above Horizon </item>
+                      <item id="18" translatable="yes">18 degrees Above Horizon</item>
                     </items>
                     <signal name="changed" handler="cb_setModified" swapped="no"/>
                   </object>
@@ -484,7 +484,7 @@ Astronomical twilight is when the sun is 18 degrees below the horizon.
                     <property name="active">0</property>
                     <items>
                       <item id="0" translatable="yes">With Twilight</item>
-                      <item id="6" translatable="yes">6 ° Above Horizon</item>
+                      <item id="6" translatable="yes">6 degrees Above Horizon</item>
                       <item id="12" translatable="yes">12 ° Above Horizon </item>
                       <item id="18" translatable="yes">18 ° Above Horizon</item>
                     </items>
