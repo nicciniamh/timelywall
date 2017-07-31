@@ -26,13 +26,12 @@ if not os.path.exists('lib'):
 sys.path.append(os.path.join(path,'lib'))    
 import debug, dialogs, timetype, desktop
 desktopEnvironment = os.environ.get('DESKTOP_SESSION')
-homePath = os.path.expanduser('~')
 iconFile = 'logo.png'
 orderMap = ("Random","Name","Date")
 Twilights = ('Civil','Nautical','Astronomical')
-settingsKeys = ('daytimeDir', 'Altitude', 'Interval', 'Longitude', 'Latitude', 'Order', 'nightDir', 'eveningDir', 'morningDir', 'Twilight', 'Cycle')
+controlKeys = ('Altitude', 'Interval', 'Longitude', 'Latitude', 'Order','Twilight', 'Cycle')
 folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
-
+settingsKeys = folderKeys+controlKeys
 def error(msg):
     debug.debug('ERROR: ',msg)
     dialogs.error(msg,buttons='OK')
@@ -194,13 +193,18 @@ class wallPaperApp(Gtk.Application):
     def createMenu(self):
         self.menu = Gtk.Menu()
         self.menuitems = [  ['Settings',    self.cb_menuSettings,   None],
+                            ['-',None,None],
                             ['About',       self.cb_menuAbout,      None],
+                            ['-',None,None],
                             ['Quit',        self.cb_menuQuit,       None]]
 
         for i in range(len(self.menuitems)):
             item,callback = self.menuitems[i][0],self.menuitems[i][1]
-            mi = Gtk.MenuItem(item)
-            mi.connect_object('activate',callback,item)
+            if item == '-':
+                mi = Gtk.SeparatorMenuItem()
+            else:
+                mi = Gtk.MenuItem(item)
+                mi.connect_object('activate',callback,item)
             self.menu.append(mi)
             self.menuitems[i][2] = mi
 
