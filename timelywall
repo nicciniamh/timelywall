@@ -442,7 +442,7 @@ class wallPaperApp(Gtk.Application):
         pb = GdkPixbuf.Pixbuf.new_from_file(iconFile)
         ab.set_logo(pb)
         ab.set_program_name('Timely Wallpaper')
-        ab.set_version('0.2')
+        ab.set_version('0.3')
         ab.set_copyright('Copyright (c) 2017 Nicole Stevens')
         ab.set_comments('Rotate Desktop Wallpaper based on time of day')
         ab.set_website('https://github.com/nicciniamh/timelywall')
