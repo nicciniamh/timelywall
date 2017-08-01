@@ -1,11 +1,11 @@
 {
     "Altitude": "0", 
     "Cycle": true, 
-    "EveningStarts": 1, 
+    "EveningStarts": 3, 
     "Interval": 300, 
     "Latitude": "45:31:23.0", 
     "Longitude": "-123:56:34.5", 
-    "MorningEnds": 1, 
+    "MorningEnds": 4, 
     "Order": "Random", 
     "Twilight": "Civil", 
     "daytimeDir": "walls/daytime", 

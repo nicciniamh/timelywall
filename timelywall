@@ -32,14 +32,17 @@ orderMap = ("Random","Name","Date")
 Twilights = ('Civil','Nautical','Astronomical')
 controlKeys = ('Altitude', 'Interval', 'Longitude', 'Latitude', 'Order','Twilight', 'Cycle','MorningEnds','EveningStarts')
 folderKeys = ('daytimeDir','nightDir', 'eveningDir', 'morningDir')
-twilightAdjs = (u'With Twilight',u'6 ° Above Horizon', u'12 ° Above Horizon', u'° Above Horizon')
-adjDegrees =  (0,6,12,18)
+twilightAdjs = (u'With Twilight',u'6° Above Horizon', u'12° Above Horizon', u'18° Above Horizon','24° Above Horizon')
+adjDegrees =  (0,6,12,18,24)
 settingsKeys = folderKeys+controlKeys
 def error(msg):
     debug.debug('ERROR: ',msg)
     dialogs.error(msg,buttons='OK')
 
 def twilightAdjustment(s):
+    if type(s) is int:
+        debug.debug('Already have an int',s)
+        return s
     s = s.split(' ')[0]
     try:
         return [i for i,elem in enumerate(twilightAdjs) if s in elem][0]
@@ -122,13 +125,15 @@ class wallPaperApp(Gtk.Application):
 
     def showDialog(self):
         settingsData = self.settingsToDict()
+        debug.debug('settings dialog, settings:\n',getJSONstring(settingsData))
         keys = settingsKeys
         for k in list(self.controls.keys()):
             c = self.controls[k]
             w = c['widget']
-            if not k in settingsData:
+            try:
+                kdata = settingsData[k]
+            except KeyError:
                 continue
-            kdata = settingsData[k]
             if kdata == None:
                 debug.debug("Invald data for {}".format(k))
                 continue
@@ -143,25 +148,21 @@ class wallPaperApp(Gtk.Application):
                     debug.debug('Cannot equate {} to index'.format(k))
                     w.set_active(0)
             elif k == 'Cycle':
-                w.set_state(kdata)
+                w.set_state(bool(kdata))
+            elif k == 'Interval':
+                w.set_value(int(kdata))
             elif c["type"] == "entry":
                 w.set_text(str(kdata))
             elif c["type"] == 'file':
                 kdata = os.path.expanduser(kdata)
                 w.set_filename(kdata or '.')
-            elif k == 'Interval':
-                w.set_value(int(kdata))
-            elif 'k' == 'Twilight':
-                w.set_active(Twilights.index(kdata))
 
-        if 'Cycle' in self.__dict__ and self.__dict__['Cycle'] != None:
-            sensitive = self.__dict__['Cycle']
-        else:
-            sensitive = False
-        self.controls['Order']['widget'].set_sensitive(sensitive)
+        cycle = settingsData['Cycle']
+        debug.debug('Setting sensitive on Order to',cycle)
+        self.controls['Order']['widget'].set_sensitive(bool(cycle))
+        self.window.show_all()
         self.modified = False
         self.setTitle()
-        self.window.show_all()
 
     def go(self):
         if(self.timeout_source):
@@ -208,11 +209,12 @@ class wallPaperApp(Gtk.Application):
         edeg = adjDegrees[edeg]
 
         try:
-            sdeg = int(self.MorningEnds)
+            sdeg = int(self.EveningStarts)
         except TypeError:
             self.EveningStarts, sdeg = 0,0
             debug.debug('evening starts index ({}) invalid, using default'.format(self.EveningStarts))
         sdeg = adjDegrees[sdeg]
+        debug.debug('morning adj',edeg,'evening adj,',sdeg)
 
         return timetype.getTimeType(self.Latitude,self.Longitude,self.Altitude,self.Twilight,edeg,sdeg)
 
@@ -286,7 +288,7 @@ class wallPaperApp(Gtk.Application):
             m='*'
         else:
             m=''
-        valid,key = self.validateSettings(self.controlsToDict())
+        valid,key = self.validateSettings(self.settingsToDict())
         if not valid:
             i=' - invalid settings!'
         else:
@@ -464,11 +466,10 @@ class wallPaperApp(Gtk.Application):
                 settingsData[k] = w.get_filename()
             elif k == 'MorningEnds' or k == 'EveningStarts':
                 x = w.get_active()
-                settingsData[k] = x
+                settingsData[k] = twilightAdjustment(x)
             elif t == 'cb':
                 s = w.get_active_text()
                 settingsData[k] = s
-
             elif t == 'switch':
                 settingsData[k] = w.get_state()
             elif k == 'Interval':
@@ -560,7 +561,7 @@ if __name__ == "__main__":
         print '    --help|-h       This list\n'
         print '    --help-gtk      GTK+ help list'
         sys.exit(0)
-    debug.setdebug(False)
+    debug.setdebug(True)
     specialOps = ((('--debug','-d'),setDebug, True),
                   (('--help', '-h'),showHelp, False))
     for flaglist,func,remove in specialOps:
