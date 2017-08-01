@@ -562,7 +562,7 @@ if __name__ == "__main__":
         print '    --help|-h       This list\n'
         print '    --help-gtk      GTK+ help list'
         sys.exit(0)
-    debug.setdebug(True)
+    debug.setdebug(False)
     specialOps = ((('--debug','-d'),setDebug, True),
                   (('--help', '-h'),showHelp, False))
     for flaglist,func,remove in specialOps:
